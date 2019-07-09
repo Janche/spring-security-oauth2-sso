@@ -3,6 +3,7 @@ server:
   port: 9999
   # session失效时间
   servlet:
+#    context-path: /uac
     session:
       timeout: 36000s
 

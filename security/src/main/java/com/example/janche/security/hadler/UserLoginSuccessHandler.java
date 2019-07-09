@@ -3,9 +3,9 @@ package com.example.janche.security.hadler;
 
 import com.alibaba.fastjson.JSON;
 import com.example.janche.common.config.IApplicationConfig;
-import com.example.janche.common.util.IPUtils;
 import com.example.janche.common.restResult.RestResult;
 import com.example.janche.common.restResult.ResultCode;
+import com.example.janche.common.util.IPUtils;
 import com.example.janche.log.domain.SysLog;
 import com.example.janche.log.service.SysLogService;
 import com.example.janche.security.utils.ResponseUtils;
@@ -135,5 +135,6 @@ public class UserLoginSuccessHandler implements AuthenticationSuccessHandler {
         sysLog.setLogType(0);
         sysLogService.saveLog(sysLog);
     }
+
 }
 

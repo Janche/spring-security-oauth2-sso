@@ -21,11 +21,11 @@ import org.springframework.security.config.annotation.ObjectPostProcessor;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.builders.WebSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.security.core.session.SessionRegistryImpl;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.access.expression.WebExpressionVoter;
@@ -40,13 +40,9 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import javax.annotation.Resource;
 import java.util.ArrayList;
 import java.util.List;
-@Configuration
-@EnableWebSecurity
 @Slf4j
+@Configuration
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
-
-    @Autowired
-    private BCryptPasswordEncoder bCryptPasswordEncoder;
 
     @Autowired
     @Qualifier("securityAuthenticationProvider")
@@ -100,7 +96,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 "/images/**",
                 "/fonts/**",
                 "/favicon.ico",
-                "/janche/**",
+                "/static/**",
                 "/resources/**","/error","/status/*", "/swagger-ui.html", "/v2/**", "/webjars/**", "/swagger-resources/**");
     }
 
@@ -111,6 +107,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
+
         http
                 .authorizeRequests()
                 .anyRequest()
@@ -118,13 +115,13 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 .withObjectPostProcessor(urlObjectPostProcessor())
                 .and()
                 .formLogin()
-                .loginPage("/login")
+                .loginPage("/login") //自定义登录页面
                 .loginProcessingUrl("/login")
                 .usernameParameter("username")
                 .passwordParameter("password")
                 .permitAll()
                 .failureHandler(securityAuthenticationFailureHandler)
-                .successHandler(userLoginSuccessHandler)
+                // .successHandler(userLoginSuccessHandler)
                 .and()
                 .exceptionHandling()
                 .authenticationEntryPoint(securityAuthenticationEntryPoint)
@@ -261,6 +258,16 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
             e.printStackTrace();
         }
         return authenticationManager;
+    }
+
+
+    /**
+     * 设置加密方式
+     * @return
+     */
+    @Bean
+    public PasswordEncoder passwordEncoder(){
+        return new BCryptPasswordEncoder();
     }
 
     public static class MyFilterSecurityInterceptor extends FilterSecurityInterceptor {

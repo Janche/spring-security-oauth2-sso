@@ -34,13 +34,14 @@ public class SecurityAuthenticationEntryPoint implements AuthenticationEntryPoin
 		if(request.getMethod() != HttpMethod.OPTIONS.toString()) {
 			log.info("尚未登录:" + authException.getMessage());
 		}
-		String originHeader = request.getHeader("Origin");
-		ResponseUtils.addResponseHeader(response, applicationConfig.getOrigins(), originHeader);
-		RestResult rv = new RestResult<>(ResultCode.UNLOGIN);
-		response.setCharacterEncoding("UTF-8");
-		response.setContentType("text/html; charset=UTF-8");
-		PrintWriter writer = response.getWriter();
-		writer.print(rv.toJson());
-		writer.flush();
+		// String originHeader = request.getHeader("Origin");
+		// ResponseUtils.addResponseHeader(response, applicationConfig.getOrigins(), originHeader);
+		// RestResult rv = new RestResult<>(ResultCode.UNLOGIN);
+		// response.setCharacterEncoding("UTF-8");
+		// response.setContentType("text/html; charset=UTF-8");
+		// PrintWriter writer = response.getWriter();
+		// writer.print(rv.toJson());
+		// writer.flush();
+		response.sendRedirect("/static/login.html");
 	}
 }

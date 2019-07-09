@@ -32,16 +32,18 @@ public class SecurityAuthenticationFailureHandler implements AuthenticationFailu
 	public void onAuthenticationFailure(HttpServletRequest request , HttpServletResponse response , AuthenticationException exception)
 			throws IOException, ServletException {
 	    // 记录登录失败的日志
-	    this.saveLog(request, exception);
+	    // this.saveLog(request, exception);
 		log.info("登录失败");
-		String originHeader = request.getHeader("Origin");
-		ResponseUtils.addResponseHeader(response, applicationConfig.getOrigins(), originHeader);
-		RestResult rv = new RestResult(ResultCode.LOGIN_ERROR.getCode(), exception.getMessage());
-		response.setCharacterEncoding("UTF-8");
-		response.setContentType("text/html;charset=UTF-8");
-		PrintWriter writer = response.getWriter();
-		writer.print(rv.toJson());
-		writer.flush();
+		// String originHeader = request.getHeader("Origin");
+		// ResponseUtils.addResponseHeader(response, applicationConfig.getOrigins(), originHeader);
+		// RestResult rv = new RestResult(ResultCode.LOGIN_ERROR.getCode(), exception.getMessage());
+		// response.setCharacterEncoding("UTF-8");
+		// response.setContentType("text/html;charset=UTF-8");
+		// PrintWriter writer = response.getWriter();
+		// writer.print(rv.toJson());
+		// writer.flush();
+
+		response.sendRedirect("/static/login.html");
 	}
 
     /**

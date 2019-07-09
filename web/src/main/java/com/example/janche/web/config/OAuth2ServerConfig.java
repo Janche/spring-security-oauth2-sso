@@ -6,27 +6,25 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.config.annotation.configurers.ClientDetailsServiceConfigurer;
 import org.springframework.security.oauth2.config.annotation.web.configuration.AuthorizationServerConfigurerAdapter;
 import org.springframework.security.oauth2.config.annotation.web.configuration.EnableAuthorizationServer;
-import org.springframework.security.oauth2.config.annotation.web.configuration.EnableResourceServer;
-import org.springframework.security.oauth2.config.annotation.web.configuration.ResourceServerConfigurerAdapter;
 import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerEndpointsConfigurer;
 import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerSecurityConfigurer;
-import org.springframework.security.oauth2.config.annotation.web.configurers.ResourceServerSecurityConfigurer;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.client.JdbcClientDetailsService;
 import org.springframework.security.oauth2.provider.code.AuthorizationCodeServices;
 import org.springframework.security.oauth2.provider.code.JdbcAuthorizationCodeServices;
-import org.springframework.security.oauth2.provider.error.OAuth2AccessDeniedHandler;
+import org.springframework.security.oauth2.provider.token.DefaultTokenServices;
 import org.springframework.security.oauth2.provider.token.TokenStore;
 import org.springframework.security.oauth2.provider.token.store.JdbcTokenStore;
+import org.springframework.security.oauth2.provider.token.store.JwtAccessTokenConverter;
+import org.springframework.security.oauth2.provider.token.store.JwtTokenStore;
 
 import javax.sql.DataSource;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author lirong
@@ -34,55 +32,6 @@ import javax.sql.DataSource;
  */
 @Configuration
 public class OAuth2ServerConfig {
-
-    private static final String RESOURCE_ID = "oauth2";
-
-
-    @Configuration
-    @EnableResourceServer
-    protected static class ResourceServerConfiguration extends ResourceServerConfigurerAdapter {
-
-        @Override
-        public void configure(ResourceServerSecurityConfigurer resources) {
-            // 如果关闭 stateless，则 accessToken 使用时的 session id 会被记录，后续请求不携带 accessToken 也可以正常响应
-            resources.resourceId(RESOURCE_ID).stateless(false);
-        }
-
-
-        /**
-         * 为oauth2单独创建角色，这些角色只具有访问受限资源的权限，可解决token失效的问题
-         * @param http
-         * @throws Exception
-         */
-        @Override
-        public void configure(HttpSecurity http) throws Exception {
-            http
-                // 获取登录用户的 session
-                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
-                .and()
-                    // 资源服务器拦截的路径 注意此路径不要和主过滤器冲突
-                    .requestMatchers().antMatchers("/authmenu/**");
-
-            //
-            http
-                .authorizeRequests()
-                     // 配置资源服务器已拦截的路径才有效
-                    .antMatchers("/authmenu/**").authenticated();
-                    // .access(" #oauth2.hasScope('select') or hasAnyRole('ROLE_超级管理员', 'ROLE_设备管理员')");
-
-            //
-            http
-                .exceptionHandling().accessDeniedHandler(new OAuth2AccessDeniedHandler())
-                .and()
-                .authorizeRequests()
-                    .anyRequest()
-                    .authenticated();
-
-
-        }
-
-    }
-
 
     @Configuration
     @EnableAuthorizationServer
@@ -98,8 +47,23 @@ public class OAuth2ServerConfig {
         ClientDetailsService clientDetailsService;
         @Autowired
         private AuthorizationCodeServices authorizationCodeServices;
-        // @Autowired
-        // private RedisConnectionFactory redisConnectionFactory;
+
+        @Bean
+        public TokenStore tokenStore() {
+            return new JdbcTokenStore(dataSource);
+        }
+
+        @Bean
+        public TokenStore jwtTokenStore() {
+            return new JwtTokenStore(jwtAccessTokenConverter());
+        }
+
+        @Bean
+        public JwtAccessTokenConverter jwtAccessTokenConverter(){
+            JwtAccessTokenConverter converter = new JwtAccessTokenConverter();
+            converter.setSigningKey("testKey");
+            return converter;
+        }
 
         /**
          * 密码加密
@@ -119,16 +83,6 @@ public class OAuth2ServerConfig {
             return new JdbcClientDetailsService(dataSource);
         }
 
-        @Bean
-        public TokenStore tokenStore() {
-            return new JdbcTokenStore(dataSource);
-        }
-
-        // @Bean
-        // public TokenStore redisTokenStore() {
-        //     return new RedisTokenStore(redisConnectionFactory);
-        // }
-
         /**
          * 加入对授权码模式的支持
          * @param dataSource
@@ -139,32 +93,28 @@ public class OAuth2ServerConfig {
             return new JdbcAuthorizationCodeServices(dataSource);
         }
 
-        // @Bean
-        // public ApprovalStore approvalStore() {
-        //     TokenApprovalStore store = new TokenApprovalStore();
-        //     store.setTokenStore(tokenStore());
-        //     return store;
-        // }
-
-        // @Bean
-        // public DefaultTokenServices defaultTokenServices(){
-        //     DefaultTokenServices tokenServices = new DefaultTokenServices();
-        //     tokenServices.setTokenStore(redisTokenStore());
-        //     tokenServices.setSupportRefreshToken(true);
-        //     tokenServices.setClientDetailsService(clientDetails());
-        //     // token有效期自定义设置，默认12小时
-        //     tokenServices.setAccessTokenValiditySeconds(60 * 3);
-        //     //默认30天，这里修改
-        //     tokenServices.setRefreshTokenValiditySeconds(60 * 60);
-        //     return tokenServices;
-        // }
-
 
         @Override
         public void configure(ClientDetailsServiceConfigurer clients) throws Exception {
             // 1. 数据库的方式
             clients.withClientDetails(clientDetails());
 
+            // 2. 内存的方式
+            // 定义了两个客户端应用的通行证
+            // clients.inMemory()
+            //         .withClient("sheep1")
+            //         .secret(new BCryptPasswordEncoder().encode("123456"))
+            //         .authorizedGrantTypes("authorization_code", "refresh_token")
+            //         .redirectUris("http://localhost:8086/login")
+            //         .scopes("all")
+            //         .autoApprove(false)
+            //         .and()
+            //         .withClient("sheep2")
+            //         .secret(new BCryptPasswordEncoder().encode("123456"))
+            //         .authorizedGrantTypes("authorization_code", "refresh_token")
+            //         .redirectUris("http://localhost:8087/login")
+            //         .scopes("all")
+            //         .autoApprove(false);
         }
 
 
@@ -176,31 +126,38 @@ public class OAuth2ServerConfig {
         @Override
         public void configure(AuthorizationServerEndpointsConfigurer endpoints) {
 
-            endpoints.tokenStore(tokenStore())
+            endpoints
+                    .tokenStore(jwtTokenStore())
+                    .accessTokenConverter(jwtAccessTokenConverter())
                     .authenticationManager(authenticationManager)
                     .userDetailsService(userDetailsService)
-                    .authorizationCodeServices(authorizationCodeServices)
-                    .setClientDetailsService(clientDetailsService);
+                    .authorizationCodeServices(authorizationCodeServices);
+                    // .setClientDetailsService(clientDetailsService);
+
+            DefaultTokenServices tokenServices = (DefaultTokenServices) endpoints.getDefaultAuthorizationServerTokenServices();
+            tokenServices.setTokenStore(endpoints.getTokenStore());
+            tokenServices.setSupportRefreshToken(true);
+            tokenServices.setClientDetailsService(endpoints.getClientDetailsService());
+            tokenServices.setTokenEnhancer(endpoints.getTokenEnhancer());
+            tokenServices.setAccessTokenValiditySeconds((int) TimeUnit.MINUTES.toSeconds(1)); // 一分钟有效期
+            endpoints.tokenServices(tokenServices);
         }
 
 
         /**
          * 声明安全约束，哪些允许访问，哪些不允许访问
-         * @param oauthServer
+         * @param security
          */
         @Override
-        public void configure(AuthorizationServerSecurityConfigurer oauthServer) {
+        public void configure(AuthorizationServerSecurityConfigurer security) {
             //允许表单认证
-            oauthServer.allowFormAuthenticationForClients();
-            oauthServer.passwordEncoder(passwordEncoder());
+            security.allowFormAuthenticationForClients();
+            security.passwordEncoder(passwordEncoder());
             // 对于CheckEndpoint控制器[框架自带的校验]的/oauth/check端点允许所有客户端发送器请求而不会被Spring-security拦截
-            oauthServer.tokenKeyAccess("permitAll()").checkTokenAccess("isAuthenticated()");
-            oauthServer.realm("oauth2");
+            security.tokenKeyAccess("isAuthenticated()");
             // oauthServer.addTokenEndpointAuthenticationFilter(new Oauth2Filter());
 
         }
-
-
 
     }
 
