@@ -139,7 +139,7 @@ public class OAuth2ServerConfig {
             tokenServices.setSupportRefreshToken(true);
             tokenServices.setClientDetailsService(endpoints.getClientDetailsService());
             tokenServices.setTokenEnhancer(endpoints.getTokenEnhancer());
-            tokenServices.setAccessTokenValiditySeconds((int) TimeUnit.MINUTES.toSeconds(1)); // 一分钟有效期
+            tokenServices.setAccessTokenValiditySeconds((int) TimeUnit.SECONDS.toSeconds(60)); // 一分钟有效期
             endpoints.tokenServices(tokenServices);
         }
 

@@ -47,6 +47,11 @@ public class RestResult<T> {
         this.data = data;
     }
 
+    public RestResult(ResultCode resultCode, T data){
+        this(resultCode);
+        this.data = data;
+    }
+
     public RestResult setCode(int code) {
         this.code = code;
         return this;

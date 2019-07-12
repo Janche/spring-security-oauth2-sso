@@ -37,6 +37,13 @@ public class UrlFilterInvocationSecurityMetadataSource implements FilterInvocati
 
     AntPathMatcher antPathMatcher = new AntPathMatcher();
 
+    /**
+     * 当访问一个url时返回这个url所需要的访问权限
+     * 获取访问此URL(权限)需要些什么角色
+     * @param o
+     * @return
+     * @throws IllegalArgumentException
+     */
     @Override
     public Collection<ConfigAttribute> getAttributes(Object o) throws IllegalArgumentException {
 
