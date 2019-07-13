@@ -65,7 +65,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         if (StrUtil.isNotBlank(jwt)) {
             try {
-                String username = jwtUtil.getUsernameFromJWT(jwt);
+                String username = jwtUtil.getUsernameFromJWT(jwt, false);
 
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
@@ -75,16 +75,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 chain.doFilter(request, response);
             } catch (CustomException e) {
-                if (ResultCode.TOKEN_EXPIRED.equals(e.getResultCode())){
-                    // String username = jwtUtil.getUsernameFromJWT(jwt);
-                    // log.info(username+"");
-                    // if (jwtUtil.checkRefreashFromJWT(jwt)){
-                    //     // 刷新token
-                    //
-                    //     SecurityUser userDetails = (SecurityUser) userDetailsService.loadUserByUsername(username);
-                    //     // jwtUtil.createJWT(userDetails, false, true);
-                    // }
-                }
                 ResponseUtils.renderJson(request, response, e, applicationConfig.getOrigins());
             }
         } else {

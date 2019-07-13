@@ -79,22 +79,20 @@ public class JwtUtil {
 
         // 设置过期时间
         Long ttl = rememberMe ? jwtConfig.getRemember() : jwtConfig.getTtl();
-        // String sign;
-        // if (isRefresh){
-        //     ttl *= 3;
-        //     sign = "refresh-token:";
-        // }else{
-        //     sign = "token:";
-        // }
+        String redisKey;
+        if (isRefresh){
+            ttl *= 3;
+            redisKey = Constant.REDIS_JWT_REFRESH_TOKEN_KEY_PREFIX + subject;
+        }else{
+            redisKey = Constant.REDIS_JWT_TOKEN_KEY_PREFIX + subject;
+        }
         if (ttl > 0) {
             builder.setExpiration(DateUtil.offsetMillisecond(now, ttl.intValue()));
         }
 
         String jwt = builder.compact();
         // 将生成的JWT保存至Redis
-
-        redisTemplate.opsForValue().set(Constant.REDIS_JWT_KEY_PREFIX + subject, jwt, ttl, TimeUnit.MILLISECONDS);
-        // redisTemplate.opsForValue().set(Constant.REDIS_JWT_KEY_PREFIX + sign + subject, jwt, ttl, TimeUnit.MILLISECONDS);
+        redisTemplate.opsForValue().set(redisKey, jwt, ttl, TimeUnit.MILLISECONDS);
         return jwt;
     }
 
@@ -104,7 +102,7 @@ public class JwtUtil {
      * @param jwt JWT
      * @return {@link Claims}
      */
-    public Claims parseJWT(String jwt) {
+    public Claims parseJWT(String jwt, Boolean isRefresh) {
         try {
             Claims claims = Jwts.parser()
                     .setSigningKey(jwtConfig.getSecret())
@@ -112,7 +110,8 @@ public class JwtUtil {
                     .getBody();
 
             String username = claims.getSubject();
-            String redisKey = Constant.REDIS_JWT_KEY_PREFIX + username;
+            String redisKey = (isRefresh ? Constant.REDIS_JWT_REFRESH_TOKEN_KEY_PREFIX : Constant.REDIS_JWT_TOKEN_KEY_PREFIX)
+                    + username;
 
             // 校验redis中的JWT是否存在
             Long expire = redisTemplate.getExpire(redisKey, TimeUnit.MILLISECONDS);
@@ -149,11 +148,15 @@ public class JwtUtil {
      *
      * @param request 请求
      */
-    public void invalidateJWT(HttpServletRequest request) {
+    public void invalidateJWT(HttpServletRequest request, Boolean isRefresh) {
         String jwt = getJwtFromRequest(request);
-        String username = getUsernameFromJWT(jwt);
+        String username = getUsernameFromJWT(jwt, isRefresh);
         // 从redis中清除JWT
-        redisTemplate.delete(Constant.REDIS_JWT_KEY_PREFIX + username);
+        if (isRefresh){
+            redisTemplate.delete(Constant.REDIS_JWT_REFRESH_TOKEN_KEY_PREFIX + username);
+        }else {
+            redisTemplate.delete(Constant.REDIS_JWT_TOKEN_KEY_PREFIX + username);
+        }
     }
 
     /**
@@ -176,29 +179,29 @@ public class JwtUtil {
      * @param jwt JWT
      * @return 用户名
      */
-    public String getUsernameFromJWT(String jwt) {
-        Claims claims = parseJWT(jwt);
+    public String getUsernameFromJWT(String jwt, Boolean isRefresh) {
+        Claims claims = parseJWT(jwt, isRefresh);
         return claims.getSubject();
     }
 
-    /**
-     * 根据 jwt 判断此token是否仍可刷新
-     *
-     * @param jwt JWT
-     * @return 用户名
-     */
-    public Boolean checkRefreashFromJWT(String jwt) {
-        Claims claims = parseJWT(jwt);
-        // 获取签发时间
-        Date issuedTime = claims.getIssuedAt();
-        Integer ttl = (Integer) claims.get("ttl");
-        DateTime lastTime = DateUtil.offsetMillisecond(issuedTime, ttl * 2);
-        log.info(issuedTime+", "+lastTime+", "+ttl);
-        if (issuedTime.before(lastTime)){
-            return true;
-        }
-        return false;
-    }
+    // /**
+    //  * 根据 jwt 判断此token是否仍可刷新
+    //  *
+    //  * @param jwt JWT
+    //  * @return 用户名
+    //  */
+    // public Boolean checkRefreashFromJWT(String jwt) {
+    //     Claims claims = parseJWT(jwt);
+    //     // 获取签发时间
+    //     Date issuedTime = claims.getIssuedAt();
+    //     Integer ttl = (Integer) claims.get("ttl");
+    //     DateTime lastTime = DateUtil.offsetMillisecond(issuedTime, ttl * 2);
+    //     log.info(issuedTime+", "+lastTime+", "+ttl);
+    //     if (issuedTime.before(lastTime)){
+    //         return true;
+    //     }
+    //     return false;
+    // }
 
     /**
      *

@@ -18,8 +18,13 @@ public interface  Constant {
     int STATUS_DISABLE = 0;
 
     /**
-     * JWT 在 Redis 中保存的key前缀
+     * JWT-token 在 Redis 中保存的key前缀
      */
-    String REDIS_JWT_KEY_PREFIX = "security:jwt:";
+    String REDIS_JWT_TOKEN_KEY_PREFIX = "security:jwt:token:";
+
+    /**
+     * JWT-refresh-token 在 Redis 中保存的key前缀
+     */
+    String REDIS_JWT_REFRESH_TOKEN_KEY_PREFIX = "security:jwt:refresh-token:";
 
 }

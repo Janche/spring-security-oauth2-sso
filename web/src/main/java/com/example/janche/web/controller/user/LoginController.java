@@ -54,10 +54,10 @@ public class LoginController {
                 .setAuthentication(authentication);
 
         String jwt = jwtUtil.createJWT(authentication, rememberMe, false);
-        // String jwt_refresh = jwtUtil.createJWT(authentication, rememberMe, true);
+        String jwt_refresh = jwtUtil.createJWT(authentication, rememberMe, true);
         Map<String, String> map = new HashMap<>();
         map.put("token", jwt);
-        // map.put("refreshToken", jwt_refresh);
+        map.put("refreshToken", jwt_refresh);
 
         CookieUtils.setCookie(response, "token", jwt);
         return ResultGenerator.genSuccessResult().setMessage("登录成功").setData(map);
@@ -72,7 +72,7 @@ public class LoginController {
     public RestResult logout(HttpServletRequest request) {
         try {
             // 设置JWT过期
-            jwtUtil.invalidateJWT(request);
+            jwtUtil.invalidateJWT(request, false);
         } catch (CustomException e) {
             throw new CustomException(ResultCode.UNAUTHORIZED);
         }
