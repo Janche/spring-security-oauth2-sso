@@ -9,7 +9,7 @@ janche:
 
   jwt:
     secret: janche
-    ttl: 20000
+    ttl: 60000
     remember: 604800000
 
 
@@ -20,6 +20,7 @@ custom:
       post:
         - "/login"
         - "/logout"
+        - "/refresh/token"
       # options的请求不拦截
       options:
         - "/**"

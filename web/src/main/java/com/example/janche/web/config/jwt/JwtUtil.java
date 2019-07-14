@@ -148,15 +148,12 @@ public class JwtUtil {
      *
      * @param request 请求
      */
-    public void invalidateJWT(HttpServletRequest request, Boolean isRefresh) {
+    public void invalidateJWT(HttpServletRequest request) {
         String jwt = getJwtFromRequest(request);
-        String username = getUsernameFromJWT(jwt, isRefresh);
+        String username = getUsernameFromJWT(jwt, false);
         // 从redis中清除JWT
-        if (isRefresh){
-            redisTemplate.delete(Constant.REDIS_JWT_REFRESH_TOKEN_KEY_PREFIX + username);
-        }else {
-            redisTemplate.delete(Constant.REDIS_JWT_TOKEN_KEY_PREFIX + username);
-        }
+        redisTemplate.delete(Constant.REDIS_JWT_REFRESH_TOKEN_KEY_PREFIX + username);
+        redisTemplate.delete(Constant.REDIS_JWT_TOKEN_KEY_PREFIX + username);
     }
 
     /**
@@ -184,24 +181,28 @@ public class JwtUtil {
         return claims.getSubject();
     }
 
-    // /**
-    //  * 根据 jwt 判断此token是否仍可刷新
-    //  *
-    //  * @param jwt JWT
-    //  * @return 用户名
-    //  */
-    // public Boolean checkRefreashFromJWT(String jwt) {
-    //     Claims claims = parseJWT(jwt);
-    //     // 获取签发时间
-    //     Date issuedTime = claims.getIssuedAt();
-    //     Integer ttl = (Integer) claims.get("ttl");
-    //     DateTime lastTime = DateUtil.offsetMillisecond(issuedTime, ttl * 2);
-    //     log.info(issuedTime+", "+lastTime+", "+ttl);
-    //     if (issuedTime.before(lastTime)){
-    //         return true;
-    //     }
-    //     return false;
-    // }
+    public Map<String, String> refreshJWT(String token) {
+        Claims claims = parseJWT(token, true);
+        // 获取签发时间
+        Date lastTime = claims.getExpiration();
+        // 1. 判断refreshToken是否过期
+        if (!new Date().before(lastTime)){
+            throw new CustomException(ResultCode.TOKEN_EXPIRED);
+        }
+        // 2. 在redis中删除之前的token和refreshToken
+        String username = claims.getSubject();
+        // redisTemplate.delete(Constant.REDIS_JWT_REFRESH_TOKEN_KEY_PREFIX + username);
+        // redisTemplate.delete(Constant.REDIS_JWT_TOKEN_KEY_PREFIX + username);
+        // 3. 创建新的token和refreshToken并存入redis
+        String jwtToken = createJWT(false, false, Long.parseLong(claims.getId()), username,
+                (List<Role>) claims.get("roles"), null, (Collection<? extends GrantedAuthority>) claims.get("authorities"));
+        String refreshJwtToken = createJWT(true, false, Long.parseLong(claims.getId()), username,
+                (List<Role>) claims.get("roles"), null, (Collection<? extends GrantedAuthority>) claims.get("authorities"));
+        Map<String, String> map = new HashMap<>();
+        map.put("token", jwtToken);
+        map.put("refreshToken", refreshJwtToken);
+        return map;
+    }
 
     /**
      *

@@ -59,7 +59,7 @@ public class LoginController {
         map.put("token", jwt);
         map.put("refreshToken", jwt_refresh);
 
-        CookieUtils.setCookie(response, "token", jwt);
+        CookieUtils.setCookie(response, "localhost", jwt);
         return ResultGenerator.genSuccessResult().setMessage("登录成功").setData(map);
     }
 
@@ -72,10 +72,27 @@ public class LoginController {
     public RestResult logout(HttpServletRequest request) {
         try {
             // 设置JWT过期
-            jwtUtil.invalidateJWT(request, false);
+            jwtUtil.invalidateJWT(request);
         } catch (CustomException e) {
             throw new CustomException(ResultCode.UNAUTHORIZED);
         }
         return ResultGenerator.genSuccessResult().setMessage("退出成功");
+    }
+
+    /**
+     * 刷新过期的token
+     * @param refreshToken
+     * @return
+     */
+    @PostMapping("/refresh/token")
+    public RestResult refreshToken(String refreshToken) {
+        Map<String, String> map;
+        try {
+            // 刷新
+            map = jwtUtil.refreshJWT(refreshToken);
+        } catch (CustomException e) {
+            throw new CustomException(ResultCode.TOKEN_EXPIRED);
+        }
+        return ResultGenerator.genSuccessResult().setMessage("token刷新成功").setData(map);
     }
 }
