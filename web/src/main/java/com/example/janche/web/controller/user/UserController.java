@@ -171,7 +171,7 @@ public class UserController  {
 
     @Log(description = "统计在线用户的数量", type = 7, value = 7)
     @ApiOperation(value = "获取在线用户的数量", notes = "导入报表", code = 200, produces = "application/json")
-    @PostMapping(value = "/online/userNum")
+    @GetMapping(value = "/online/userNum")
     public RestResult getOnlineUserNum(){
         List<String> list = sessionRegistry.getAllPrincipals().stream()
                 .filter(u -> !sessionRegistry.getAllSessions(u, false).isEmpty())

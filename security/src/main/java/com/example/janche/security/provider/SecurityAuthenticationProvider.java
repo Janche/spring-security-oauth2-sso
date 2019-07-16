@@ -1,10 +1,12 @@
 package com.example.janche.security.provider;
 
+import com.example.janche.common.model.Constant;
 import com.example.janche.security.authentication.SecurityUser;
 import com.example.janche.security.utils.SecurityUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -18,6 +20,9 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 
 @Component("securityAuthenticationProvider")
@@ -36,12 +41,15 @@ public class SecurityAuthenticationProvider implements AuthenticationProvider {
     @Qualifier("passwordEncoder")
     private PasswordEncoder passwordEncoder;
 
-
+    @Autowired
+    private RedisTemplate redisTemplate;
 
 	@Override
 	public Authentication authenticate(Authentication authentication ) throws AuthenticationException {
         ServletRequestAttributes sra = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         HttpServletRequest request = sra.getRequest();
+
+        log.error("SessionId: "+request.getSession().getId());
 
         // 判断当前IP是否允许登录
         // Boolean flag = this.checkLoginIp(request);
@@ -97,6 +105,16 @@ public class SecurityAuthenticationProvider implements AuthenticationProvider {
             }
 
         }
+
+        // 将用户权限存入Redis
+        List<String> perms = new ArrayList<>();
+        userDetails.getMenus().stream().filter(m -> m.getGrades() == 3).forEach(e ->{
+            String method = e.getMethod();
+            String url = e.getUrl();
+            perms.add(method+":"+url);
+        });
+        redisTemplate.opsForValue().set(Constant.REDIS_PERM_KEY_PREFIX + userName, perms, 600, TimeUnit.SECONDS);
+
         // [5] 成功登陆，把用户信息提交给 Spring Security
         // 把 userDetails 作为 principal 的好处是可以放自定义的 UserDetails，这样可以存储更多有用的信息，而不只是 username，
         // 默认只有 username，这里的密码使用数据库中保存的密码，而不是用户输入的明文密码，否则就暴露了密码的明文

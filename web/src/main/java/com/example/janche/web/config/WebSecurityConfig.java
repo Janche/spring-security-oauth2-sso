@@ -97,6 +97,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 "/fonts/**",
                 "/favicon.ico",
                 "/static/**",
+                // "/logout",
                 "/resources/**","/error","/status/*", "/swagger-ui.html", "/v2/**", "/webjars/**", "/swagger-resources/**");
     }
 
@@ -127,8 +128,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 .authenticationEntryPoint(securityAuthenticationEntryPoint)
                 .and()
                 .logout()
-                .deleteCookies("remove")
-                .invalidateHttpSession(false)
+                .deleteCookies("JSESSIONID")
                 .logoutUrl("/logout")
                 .logoutSuccessHandler(securityLogoutSuccessHandler)
                 .permitAll()

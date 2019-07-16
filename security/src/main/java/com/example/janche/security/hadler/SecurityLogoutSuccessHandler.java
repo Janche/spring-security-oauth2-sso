@@ -1,21 +1,21 @@
 package com.example.janche.security.hadler;
 
 import com.example.janche.common.config.IApplicationConfig;
-import com.example.janche.common.util.IPUtils;
 import com.example.janche.common.restResult.RestResult;
 import com.example.janche.common.restResult.ResultCode;
+import com.example.janche.common.util.IPUtils;
 import com.example.janche.log.domain.SysLog;
 import com.example.janche.log.service.SysLogService;
 import com.example.janche.security.utils.ResponseUtils;
 import com.example.janche.user.dto.LoginUserDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
-import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
@@ -33,8 +33,7 @@ public class SecurityLogoutSuccessHandler implements LogoutSuccessHandler {
 	private SysLogService sysLogService;
 
 	@Override
-	public void onLogoutSuccess(HttpServletRequest request , HttpServletResponse response , Authentication authentication) throws IOException,
-            ServletException {
+	public void onLogoutSuccess(HttpServletRequest request , HttpServletResponse response , Authentication authentication) throws IOException {
 
 		// 清除登录的session
 		this.removeSesion(request);
@@ -53,6 +52,9 @@ public class SecurityLogoutSuccessHandler implements LogoutSuccessHandler {
 		writer.print(result.toJson());
 		writer.flush();
 	}
+	@Autowired
+	private RedisTemplate redisTemplate;
+
 
 	/**
 	 * 移除登录用户的session
@@ -60,8 +62,10 @@ public class SecurityLogoutSuccessHandler implements LogoutSuccessHandler {
 	 */
 	private void removeSesion(HttpServletRequest request) {
 		HttpSession session = request.getSession();
+		session.invalidate();
 		// 登出后1秒，手动让系统中的此session失效
-		session.setMaxInactiveInterval(1);
+		// session.setMaxInactiveInterval(1);
+
 	}
 	
 	/**

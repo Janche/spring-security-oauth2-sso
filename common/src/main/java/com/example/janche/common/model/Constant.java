@@ -17,4 +17,6 @@ public interface  Constant {
     int STATUS_ENABLE = 1;
     int STATUS_DISABLE = 0;
 
+    String REDIS_PERM_KEY_PREFIX = "security:user:permissions:";
+
 }

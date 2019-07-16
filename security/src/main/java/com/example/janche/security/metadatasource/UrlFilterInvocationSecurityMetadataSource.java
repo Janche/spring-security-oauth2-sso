@@ -58,6 +58,9 @@ public class UrlFilterInvocationSecurityMetadataSource implements FilterInvocati
         if(requestUrl.indexOf("?") > 0) {
             requestUrl = requestUrl.substring(0, requestUrl.indexOf("?"));
         }
+        if (requestUrl.equals("/oauth/authorize")){
+            return null;
+        }
         // List<MenuRight> allMenu = menuService.findAllMenuRightByUrl(requestUrl,);
          for (MenuRight menu : allMenu) {
               String httpMethod = menu.getMethod();

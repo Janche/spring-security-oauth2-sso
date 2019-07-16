@@ -5,7 +5,7 @@ server:
   servlet:
 #    context-path: /uac
     session:
-      timeout: 36000s
+      timeout: 3600s
 
 spring:
   profiles:
